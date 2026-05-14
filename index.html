@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>待办事项</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="todo-app">
+    <header class="app-header">
+      <p class="eyebrow">今日计划</p>
+      <h1>待办事项</h1>
+      <p class="quote">把今天安排好，明天就会轻一点。</p>
+    </header>
+
+    <!-- 一个入口输入任务，分类由 JavaScript 自动判断 -->
+    <section class="todo-panel">
+      <div class="todo-form">
+        <label class="field task-field" for="todo-input">
+          <span>任务</span>
+          <input id="todo-input" type="text" placeholder="例如：准备会议资料">
+        </label>
+
+        <label class="field" for="deadline-input">
+          <span>截止日期</span>
+          <input id="deadline-input" type="date">
+        </label>
+
+        <label class="field" for="duration-select">
+          <span>完成时长</span>
+          <select id="duration-select">
+            <option value="无">无</option>
+            <option value="30分钟内">30分钟内</option>
+            <option value="1小时">1小时</option>
+            <option value="1.5小时">1.5小时</option>
+            <option value="2小时">2小时</option>
+            <option value="3小时">3小时</option>
+            <option value="半天">半天</option>
+            <option value="一天">一天</option>
+          </select>
+        </label>
+
+        <button id="add-button" type="button">添加</button>
+      </div>
+      <div class="backup-actions">
+        <button id="export-button" class="secondary-button" type="button">导出备份</button>
+        <button id="import-button" class="secondary-button" type="button">导入备份</button>
+        <input id="import-file" type="file" accept="application/json,.json" hidden>
+      </div>
+    </section>
+
+    <!-- 分类区域会由 JavaScript 统一渲染 -->
+    <section id="todo-sections" class="todo-sections"></section>
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>
