@@ -8,16 +8,65 @@
 </head>
 <body>
   <main class="todo-app">
-    <h1>待办事项</h1>
+    <header class="app-header">
+      <p class="eyebrow">今日计划</p>
+      <h1>待办事项</h1>
+      <p class="quote">把今天安排好，明天就会轻一点。</p>
+    </header>
 
-    <!-- 输入区域：输入任务后点击按钮或按回车添加 -->
-    <div class="todo-form">
-      <input id="todo-input" type="text" placeholder="输入一个任务">
-      <button id="add-button" type="button">添加</button>
+    <!-- 一个入口输入任务，分类由 JavaScript 自动判断 -->
+    <section class="todo-panel">
+      <div class="todo-form">
+        <label class="field task-field" for="todo-input">
+          <span>任务</span>
+          <input id="todo-input" type="text" placeholder="例如：准备会议资料">
+        </label>
+
+        <label class="field" for="deadline-input">
+          <span>截止日期</span>
+          <input id="deadline-input" type="date">
+        </label>
+
+        <label class="field" for="duration-select">
+          <span>完成时长</span>
+          <select id="duration-select">
+            <option value="无">无</option>
+            <option value="30分钟内">30分钟内</option>
+            <option value="1小时">1小时</option>
+            <option value="1.5小时">1.5小时</option>
+            <option value="2小时">2小时</option>
+            <option value="3小时">3小时</option>
+            <option value="半天">半天</option>
+            <option value="一天">一天</option>
+          </select>
+        </label>
+
+        <button id="add-button" type="button">添加</button>
+      </div>
+      <div class="backup-actions">
+        <div class="transfer-menu">
+          <button id="transfer-button" class="secondary-button" type="button">转移</button>
+          <div id="transfer-options" class="transfer-options" hidden>
+            <button id="export-button" type="button">导出备份</button>
+            <button id="import-button" type="button">导入备份</button>
+          </div>
+        </div>
+        <button id="copy-summary-button" class="secondary-button primary-secondary" type="button">待办事项导出</button>
+        <input id="import-file" type="file" accept="application/json,.json" hidden>
+      </div>
+    </section>
+
+    <!-- 分类区域会由 JavaScript 统一渲染 -->
+    <section id="todo-sections" class="todo-sections"></section>
+
+    <div id="copy-fallback" class="copy-fallback" hidden>
+      <div class="copy-dialog">
+        <h2>手动复制待办事项</h2>
+        <p>当前浏览器不允许自动写入剪切板，可以从这里手动复制。</p>
+        <textarea id="copy-fallback-text" readonly></textarea>
+        <button id="close-copy-fallback" type="button">关闭</button>
+      </div>
     </div>
-
-    <!-- 任务列表会由 JavaScript 动态添加到这里 -->
-    <ul id="todo-list" class="todo-list"></ul>
   </main>
 
   <script src="script.js"></script>
