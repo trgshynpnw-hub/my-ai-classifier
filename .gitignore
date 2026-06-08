@@ -19,6 +19,8 @@ coverage/
 .cache/
 .parcel-cache/
 .vite/
+.codex_tmp/
+outputs/
 
 # Logs
 *.log
@@ -38,3 +40,4 @@ tmp/
 temp/
 *.tmp
 *.bak
+my-ai-classifier-tasks.json

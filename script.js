@@ -17,6 +17,7 @@ const STORAGE_KEY = "simple-todos";
 const categories = ["工作", "学习", "生活", "健康", "其他"];
 
 let todos = loadTodos();
+let activeInlineEditor = null;
 
 function loadTodos() {
   let savedTodos = null;
@@ -70,6 +71,14 @@ function saveTodos() {
 
 function normalizeText(text) {
   return text.trim();
+}
+
+function closeActiveInlineEditor() {
+  if (!activeInlineEditor) {
+    return;
+  }
+
+  activeInlineEditor.close();
 }
 
 function getCategory(text) {
@@ -205,6 +214,38 @@ function updateTodoProgress(id, progressText) {
   renderTodos();
 }
 
+function updateTodoDeadline(id, deadlineDate) {
+  if (deadlineDate === "") {
+    alert("请选择截止日期。");
+    renderTodos();
+    return;
+  }
+
+  todos = todos.map(function (todo) {
+    if (todo.id === id) {
+      return { ...todo, deadlineDate: deadlineDate };
+    }
+
+    return todo;
+  });
+
+  saveTodos();
+  renderTodos();
+}
+
+function updateTodoDuration(id, duration) {
+  todos = todos.map(function (todo) {
+    if (todo.id === id) {
+      return { ...todo, duration: duration };
+    }
+
+    return todo;
+  });
+
+  saveTodos();
+  renderTodos();
+}
+
 function getSortedTodos() {
   return [...todos].sort(function (a, b) {
     return a.deadlineDate.localeCompare(b.deadlineDate);
@@ -245,6 +286,10 @@ function getDeadlineClass(dateText) {
   }
 
   return "deadline-later";
+}
+
+function isPastDeadline(dateText) {
+  return getDaysUntil(dateText) < 0;
 }
 
 function getDurationClass(duration) {
@@ -297,6 +342,129 @@ function startEditingProgress(todo) {
   }
 
   updateTodoProgress(todo.id, progressText);
+}
+
+function startEditingDeadline(todo, deadlineTag) {
+  closeActiveInlineEditor();
+
+  const editInput = document.createElement("input");
+  let isFinished = false;
+  const originalDeadline = todo.deadlineDate;
+
+  editInput.className = "deadline-edit-input";
+  editInput.type = "date";
+  editInput.value = todo.deadlineDate;
+
+  deadlineTag.replaceWith(editInput);
+  editInput.focus();
+
+  function finishEditing() {
+    if (isFinished) {
+      return;
+    }
+
+    isFinished = true;
+    activeInlineEditor = null;
+    updateTodoDeadline(todo.id, editInput.value);
+  }
+
+  function finishOrRestore() {
+    if (isFinished) {
+      return;
+    }
+
+    if (editInput.value === originalDeadline) {
+      isFinished = true;
+      activeInlineEditor = null;
+      renderTodos();
+      return;
+    }
+
+    finishEditing();
+  }
+
+  activeInlineEditor = {
+    element: editInput,
+    close: finishOrRestore
+  };
+
+  editInput.addEventListener("change", finishEditing);
+  editInput.addEventListener("blur", finishOrRestore);
+
+  editInput.addEventListener("keydown", function (event) {
+    if (event.key === "Enter") {
+      finishEditing();
+    }
+
+    if (event.key === "Escape") {
+      renderTodos();
+    }
+  });
+}
+
+function startEditingDuration(todo, durationTag) {
+  closeActiveInlineEditor();
+
+  const editSelect = document.createElement("select");
+  const durations = ["无", "30分钟内", "1小时", "1.5小时", "2小时", "3小时", "半天", "一天"];
+  let isFinished = false;
+  const originalDuration = todo.duration;
+
+  editSelect.className = "duration-edit-select";
+
+  durations.forEach(function (duration) {
+    const option = document.createElement("option");
+    option.value = duration;
+    option.textContent = duration;
+    option.selected = duration === todo.duration;
+    editSelect.append(option);
+  });
+
+  durationTag.replaceWith(editSelect);
+  editSelect.focus();
+
+  function finishEditing() {
+    if (isFinished) {
+      return;
+    }
+
+    isFinished = true;
+    activeInlineEditor = null;
+    updateTodoDuration(todo.id, editSelect.value);
+  }
+
+  function finishOrRestore() {
+    if (isFinished) {
+      return;
+    }
+
+    if (editSelect.value === originalDuration) {
+      isFinished = true;
+      activeInlineEditor = null;
+      renderTodos();
+      return;
+    }
+
+    finishEditing();
+  }
+
+  activeInlineEditor = {
+    element: editSelect,
+    close: finishOrRestore
+  };
+
+  editSelect.addEventListener("change", finishEditing);
+  editSelect.addEventListener("blur", finishOrRestore);
+
+  editSelect.addEventListener("keydown", function (event) {
+    if (event.key === "Enter") {
+      finishEditing();
+    }
+
+    if (event.key === "Escape") {
+      renderTodos();
+    }
+  });
 }
 
 function exportTodos() {
@@ -407,6 +575,10 @@ function createTodoItem(todo) {
     item.classList.add("completed");
   }
 
+  if (isPastDeadline(todo.deadlineDate)) {
+    item.classList.add("past-deadline");
+  }
+
   const checkbox = document.createElement("input");
   checkbox.className = "todo-checkbox";
   checkbox.type = "checkbox";
@@ -434,10 +606,14 @@ function createTodoItem(todo) {
   const deadlineTag = document.createElement("span");
   deadlineTag.className = "tag deadline-tag " + getDeadlineClass(todo.deadlineDate);
   deadlineTag.textContent = "截止：" + formatDate(todo.deadlineDate);
+  deadlineTag.title = "点击修改截止日期";
+  deadlineTag.tabIndex = 0;
 
   const durationTag = document.createElement("span");
   durationTag.className = "tag duration-tag " + getDurationClass(todo.duration);
   durationTag.textContent = "预计：" + todo.duration;
+  durationTag.title = "点击修改预计时长";
+  durationTag.tabIndex = 0;
 
   meta.append(deadlineTag, durationTag);
 
@@ -450,12 +626,45 @@ function createTodoItem(todo) {
     toggleTodo(todo.id);
   });
 
-  taskText.addEventListener("click", function () {
+  taskText.addEventListener("click", function (event) {
+    event.stopPropagation();
     startEditingTodo(todo, taskText);
+  });
+
+  deadlineTag.addEventListener("click", function (event) {
+    event.stopPropagation();
+    startEditingDeadline(todo, deadlineTag);
+  });
+
+  deadlineTag.addEventListener("keydown", function (event) {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      startEditingDeadline(todo, deadlineTag);
+    }
+  });
+
+  durationTag.addEventListener("click", function (event) {
+    event.stopPropagation();
+    startEditingDuration(todo, durationTag);
+  });
+
+  durationTag.addEventListener("keydown", function (event) {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      startEditingDuration(todo, durationTag);
+    }
   });
 
   deleteButton.addEventListener("click", function () {
     deleteTodo(todo.id);
+  });
+
+  content.addEventListener("click", function (event) {
+    if (event.target.closest("input, select, textarea, .todo-text, .todo-meta")) {
+      return;
+    }
+
+    startEditingProgress(todo);
   });
 
   item.addEventListener("click", function (event) {
@@ -473,6 +682,7 @@ function createTodoItem(todo) {
 }
 
 function renderTodos() {
+  activeInlineEditor = null;
   todoSections.innerHTML = "";
 
   if (todos.length === 0) {
@@ -536,6 +746,14 @@ document.addEventListener("click", function (event) {
   }
 
   transferOptions.hidden = true;
+});
+
+document.addEventListener("pointerdown", function (event) {
+  if (!activeInlineEditor || activeInlineEditor.element.contains(event.target)) {
+    return;
+  }
+
+  closeActiveInlineEditor();
 });
 
 document.addEventListener("keydown", function (event) {
